@@ -4,6 +4,8 @@ use crate::domain::bookmark::BookmarkSearchEngine;
 
 pub(crate) trait ApplicationService {
     fn search(&self, term: String) -> Vec<Url>;
+
+    fn suggest(&self, term: String) -> Vec<String>;
 }
 
 #[derive(Default)]
@@ -25,6 +27,14 @@ impl<BSE: BookmarkSearchEngine> ApplicationService for ApplicationServiceImpl<BS
             .search(term)
             .iter()
             .map(|bookmark| bookmark.url().clone())
+            .collect()
+    }
+
+    fn suggest(&self, term: String) -> Vec<String> {
+        self.bookmark_search_engine
+            .search(term)
+            .iter()
+            .map(|bookmark| bookmark.name().clone())
             .collect()
     }
 }

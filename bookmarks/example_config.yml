@@ -3,3 +3,7 @@
   url: https://github.com
   description: Code hosting service
   tags: [ "code", "repository", "git" ]
+- name: Google
+  url: https://google.com
+  description: Google Search
+  tags: [ "search", "google" ]

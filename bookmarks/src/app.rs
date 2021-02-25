@@ -4,7 +4,7 @@ use std::sync::Arc;
 use warp::Filter;
 
 use crate::application::{ApplicationService, ApplicationServiceImpl};
-use crate::ports::http::warp::bookmarks_search_filter;
+use crate::ports::http::warp::{bookmarks_search_filter, bookmarks_suggestions_filter};
 use crate::ports::search::simple::{FileConfigReader, SimpleBookmarkSearchEngine};
 
 #[derive(Default)]
@@ -23,7 +23,7 @@ impl App {
         let application_service = ApplicationServiceImpl::new(self.bookmark_search_engine()?);
 
         warp::serve(self.routes(Arc::new(application_service)))
-            .run(([127, 0, 0, 1], 3030))
+            .run(([127, 0, 0, 1], 3033))
             .await;
 
         Ok(())
@@ -42,7 +42,11 @@ impl App {
     where
         AS: ApplicationService + Send + Sync,
     {
-        warp::path("search").and(bookmarks_search_filter(application_service))
+        let search = warp::path("search").and(bookmarks_search_filter(application_service.clone()));
+        let suggestions =
+            warp::path("suggestions").and(bookmarks_suggestions_filter(application_service));
+
+        warp::any().and(search.or(suggestions))
     }
 }
 

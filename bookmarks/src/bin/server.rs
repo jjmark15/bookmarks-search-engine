@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
+    env_logger::init();
     let args: Vec<String> = std::env::args().collect();
     let search_engine_config_path = PathBuf::from(&args[1]);
 

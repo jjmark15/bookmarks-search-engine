@@ -1,5 +1,6 @@
 use bookmarks::App;
 use std::path::PathBuf;
+use std::process::exit;
 
 #[tokio::main]
 async fn main() {
@@ -9,5 +10,6 @@ async fn main() {
 
     if let Err(err) = App::new(search_engine_config_path).run().await {
         eprintln!("{}", err);
+        exit(1)
     }
 }

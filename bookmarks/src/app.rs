@@ -34,7 +34,7 @@ impl App {
         let bookmark_repository =
             FileSystemBookmarkRepositoryAdapter::new(self.search_engine_config_path.as_path());
         Ok(SimpleBookmarkSearchEngine::new(bookmark_repository)
-            .map_err(|err| AppError::BookmarkSearchEngineError(format!("{}", err)))?)
+            .map_err(|_err| AppError::FailedToInitialise)?)
     }
 
     fn routes<AS>(
@@ -54,6 +54,6 @@ impl App {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
-    #[error("{0}")]
-    BookmarkSearchEngineError(String),
+    #[error("Failed to initialize app")]
+    FailedToInitialise,
 }

@@ -7,7 +7,9 @@ use crate::application::{ApplicationService, ApplicationServiceImpl};
 use crate::domain::bookmark::BookmarkFactoryImpl;
 use crate::ports::http::warp::{bookmarks_search_filter, bookmarks_suggestions_filter};
 use crate::ports::persistence::file_system::FileSystemBookmarkRepositoryAdapter;
-use crate::ports::search::simple::SimpleBookmarkSearchEngine;
+use crate::ports::search::simple::{
+    SimpleBookmarkSearchEngine, SimpleBookmarkSearchEngineInitialisationError,
+};
 
 #[derive(Default)]
 pub struct App {
@@ -21,8 +23,11 @@ impl App {
         }
     }
 
-    pub async fn run(&self) -> Result<(), AppError> {
-        let application_service = ApplicationServiceImpl::new(self.bookmark_search_engine()?);
+    pub async fn run(&self) -> Result<(), AppInitialisationError> {
+        let application_service = ApplicationServiceImpl::new(
+            self.bookmark_search_engine()
+                .map_err(map_initialisation_error_cause)?,
+        );
 
         warp::serve(self.routes(Arc::new(application_service)))
             .run(([127, 0, 0, 1], 3033))
@@ -31,14 +36,15 @@ impl App {
         Ok(())
     }
 
-    fn bookmark_search_engine(&self) -> Result<SimpleBookmarkSearchEngine, AppError> {
+    fn bookmark_search_engine(
+        &self,
+    ) -> Result<SimpleBookmarkSearchEngine, SimpleBookmarkSearchEngineInitialisationError> {
         let bookmark_factory = BookmarkFactoryImpl::new();
         let bookmark_repository = FileSystemBookmarkRepositoryAdapter::new(
             self.search_engine_config_path.as_path(),
             bookmark_factory,
         );
-        Ok(SimpleBookmarkSearchEngine::new(bookmark_repository)
-            .map_err(|_err| AppError::FailedToInitialise)?)
+        SimpleBookmarkSearchEngine::new(bookmark_repository)
     }
 
     fn routes<AS>(
@@ -57,7 +63,25 @@ impl App {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum AppError {
-    #[error("Failed to initialize app")]
-    FailedToInitialise,
+#[error("App failed to start: {cause}")]
+pub struct AppInitialisationError {
+    cause: AppInitialisationCause,
+}
+
+impl AppInitialisationError {
+    fn new(cause: AppInitialisationCause) -> Self {
+        AppInitialisationError { cause }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum AppInitialisationCause {
+    #[error(transparent)]
+    SearchEngine(#[from] SimpleBookmarkSearchEngineInitialisationError),
+}
+
+fn map_initialisation_error_cause<C: Into<AppInitialisationCause>>(
+    cause: C,
+) -> AppInitialisationError {
+    AppInitialisationError::new(cause.into())
 }

@@ -1,6 +1,6 @@
 use crate::domain::bookmark::{Bookmark, BookmarkRepository, BookmarkSearchEngine};
 use crate::ports::search::simple::bookmark::SimpleSearchBookmark;
-use crate::ports::search::simple::SimpleBookmarkSearchEngineError;
+use crate::ports::search::simple::SimpleBookmarkSearchEngineInitialisationError;
 
 pub(crate) struct SimpleBookmarkSearchEngine {
     data: Vec<SimpleSearchBookmark>,
@@ -9,7 +9,7 @@ pub(crate) struct SimpleBookmarkSearchEngine {
 impl SimpleBookmarkSearchEngine {
     pub(crate) fn new<BR: BookmarkRepository>(
         bookmark_repository: BR,
-    ) -> Result<Self, SimpleBookmarkSearchEngineError> {
+    ) -> Result<Self, SimpleBookmarkSearchEngineInitialisationError> {
         let data: Vec<SimpleSearchBookmark> = bookmark_repository
             .get_all()?
             .iter()

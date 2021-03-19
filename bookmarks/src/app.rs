@@ -4,6 +4,7 @@ use std::sync::Arc;
 use warp::Filter;
 
 use crate::application::{ApplicationService, ApplicationServiceImpl};
+use crate::domain::bookmark::BookmarkFactoryImpl;
 use crate::ports::http::warp::{bookmarks_search_filter, bookmarks_suggestions_filter};
 use crate::ports::persistence::file_system::FileSystemBookmarkRepositoryAdapter;
 use crate::ports::search::simple::SimpleBookmarkSearchEngine;
@@ -31,8 +32,11 @@ impl App {
     }
 
     fn bookmark_search_engine(&self) -> Result<SimpleBookmarkSearchEngine, AppError> {
-        let bookmark_repository =
-            FileSystemBookmarkRepositoryAdapter::new(self.search_engine_config_path.as_path());
+        let bookmark_factory = BookmarkFactoryImpl::new();
+        let bookmark_repository = FileSystemBookmarkRepositoryAdapter::new(
+            self.search_engine_config_path.as_path(),
+            bookmark_factory,
+        );
         Ok(SimpleBookmarkSearchEngine::new(bookmark_repository)
             .map_err(|_err| AppError::FailedToInitialise)?)
     }

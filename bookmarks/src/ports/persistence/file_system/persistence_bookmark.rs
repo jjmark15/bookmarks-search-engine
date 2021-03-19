@@ -1,7 +1,5 @@
 use url::Url;
 
-use crate::domain::bookmark::Bookmark;
-
 #[derive(Debug, serde::Deserialize)]
 pub(super) struct PersistenceBookmark {
     url: Url,
@@ -28,16 +26,5 @@ impl PersistenceBookmark {
 
     pub(crate) fn tags(&self) -> &Vec<String> {
         &self.tags
-    }
-}
-
-impl From<&PersistenceBookmark> for Bookmark {
-    fn from(bookmark: &PersistenceBookmark) -> Self {
-        Bookmark::new(
-            bookmark.url().clone(),
-            bookmark.name().to_string(),
-            bookmark.description().map(String::to_string),
-            bookmark.tags().clone(),
-        )
     }
 }

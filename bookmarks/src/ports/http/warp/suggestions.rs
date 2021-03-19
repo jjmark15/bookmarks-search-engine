@@ -28,7 +28,14 @@ fn handler<AS: ApplicationService>(
             let names = application_service.suggest(term.clone());
             let body = SuggestionResponse::new(term.clone(), names);
 
-            warp::reply::json(&body).into_response()
+            Response::builder()
+                .status(StatusCode::OK)
+                .header(
+                    warp::http::header::CONTENT_TYPE,
+                    "application/x-suggestions+json",
+                )
+                .body(serde_json::to_string(&body).unwrap())
+                .into_response()
         }
         None => Response::builder()
             .status(StatusCode::BAD_REQUEST)

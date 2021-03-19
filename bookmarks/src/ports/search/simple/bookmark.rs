@@ -1,23 +1,23 @@
 use url::Url;
 
-use crate::domain::bookmark::Bookmark as DomainBookmark;
+use crate::domain::bookmark::Bookmark;
 
 #[derive(Clone, serde::Deserialize)]
-pub(crate) struct Bookmark {
+pub(crate) struct SimpleSearchBookmark {
     url: Url,
     name: String,
     description: Option<String>,
     tags: Vec<String>,
 }
 
-impl Bookmark {
+impl SimpleSearchBookmark {
     pub(crate) fn new(
         url: Url,
         name: String,
         description: Option<String>,
         tags: Vec<String>,
     ) -> Self {
-        Bookmark {
+        SimpleSearchBookmark {
             url,
             name,
             description,
@@ -45,9 +45,9 @@ impl Bookmark {
     }
 }
 
-impl From<DomainBookmark> for Bookmark {
-    fn from(bookmark: DomainBookmark) -> Self {
-        Bookmark::new(
+impl From<&Bookmark> for SimpleSearchBookmark {
+    fn from(bookmark: &Bookmark) -> Self {
+        SimpleSearchBookmark::new(
             bookmark.url().clone(),
             bookmark.name().clone(),
             bookmark.description().cloned(),
@@ -56,9 +56,9 @@ impl From<DomainBookmark> for Bookmark {
     }
 }
 
-impl From<Bookmark> for DomainBookmark {
-    fn from(bookmark: Bookmark) -> Self {
-        DomainBookmark::new(
+impl From<SimpleSearchBookmark> for Bookmark {
+    fn from(bookmark: SimpleSearchBookmark) -> Self {
+        Bookmark::new(
             bookmark.url().clone(),
             bookmark.name().clone(),
             bookmark.description().cloned(),

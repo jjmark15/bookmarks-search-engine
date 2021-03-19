@@ -5,7 +5,8 @@ use warp::Filter;
 
 use crate::application::{ApplicationService, ApplicationServiceImpl};
 use crate::ports::http::warp::{bookmarks_search_filter, bookmarks_suggestions_filter};
-use crate::ports::search::simple::{FileConfigReader, SimpleBookmarkSearchEngine};
+use crate::ports::persistence::file_system::FileSystemBookmarkRepositoryAdapter;
+use crate::ports::search::simple::SimpleBookmarkSearchEngine;
 
 #[derive(Default)]
 pub struct App {
@@ -30,8 +31,9 @@ impl App {
     }
 
     fn bookmark_search_engine(&self) -> Result<SimpleBookmarkSearchEngine, AppError> {
-        let config_reader = FileConfigReader::new(self.search_engine_config_path.as_path());
-        Ok(SimpleBookmarkSearchEngine::new(config_reader)
+        let bookmark_repository =
+            FileSystemBookmarkRepositoryAdapter::new(self.search_engine_config_path.as_path());
+        Ok(SimpleBookmarkSearchEngine::new(bookmark_repository)
             .map_err(|err| AppError::BookmarkSearchEngineError(format!("{}", err)))?)
     }
 

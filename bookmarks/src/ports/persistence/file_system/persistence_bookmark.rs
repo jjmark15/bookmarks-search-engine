@@ -1,33 +1,16 @@
 use url::Url;
 
-pub(crate) use bookmark_repository::*;
-pub(crate) use bookmark_search_engine::*;
+use crate::domain::bookmark::Bookmark;
 
-mod bookmark_repository;
-mod bookmark_search_engine;
-
-pub(crate) struct Bookmark {
+#[derive(Debug, serde::Deserialize)]
+pub(super) struct PersistenceBookmark {
     url: Url,
     name: String,
     description: Option<String>,
     tags: Vec<String>,
 }
 
-impl Bookmark {
-    pub(crate) fn new(
-        url: Url,
-        name: String,
-        description: Option<String>,
-        tags: Vec<String>,
-    ) -> Self {
-        Bookmark {
-            url,
-            name,
-            description,
-            tags,
-        }
-    }
-
+impl PersistenceBookmark {
     pub(crate) fn url(&self) -> &Url {
         &self.url
     }
@@ -45,5 +28,16 @@ impl Bookmark {
 
     pub(crate) fn tags(&self) -> &Vec<String> {
         &self.tags
+    }
+}
+
+impl From<&PersistenceBookmark> for Bookmark {
+    fn from(bookmark: &PersistenceBookmark) -> Self {
+        Bookmark::new(
+            bookmark.url().clone(),
+            bookmark.name().to_string(),
+            bookmark.description().map(String::to_string),
+            bookmark.tags().clone(),
+        )
     }
 }

@@ -1,6 +1,7 @@
-use crate::domain::bookmark::Bookmark;
 use url::Url;
 use uuid::Uuid;
+
+use crate::domain::bookmark::Bookmark;
 
 #[derive(Debug, serde::Deserialize)]
 pub(super) struct MemoryBookmark {
@@ -41,10 +42,7 @@ impl MemoryBookmark {
     }
 
     pub(crate) fn description(&self) -> Option<&String> {
-        match &self.description {
-            Some(description) => Some(description),
-            None => None,
-        }
+        self.description.as_ref()
     }
 
     pub(crate) fn tags(&self) -> &Vec<String> {

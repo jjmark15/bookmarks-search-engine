@@ -4,11 +4,13 @@ use std::sync::Arc;
 use warp::Filter;
 
 use crate::application::{ApplicationService, ApplicationServiceImpl};
-use crate::domain::bookmark::BookmarkFactoryImpl;
+use crate::domain::bookmark::{BookmarkRepository, BookmarkRepositoryError};
 use crate::ports::http::warp::{bookmarks_search_filter, bookmarks_suggestions_filter};
-use crate::ports::persistence::file_system::FileSystemBookmarkRepositoryAdapter;
-use crate::ports::search::simple::{
-    SimpleBookmarkSearchEngine, SimpleBookmarkSearchEngineInitialisationError,
+use crate::ports::persistence::file_system::{
+    FileSystemBookmarkRepositoryAdapter, FileSystemBookmarkRepositoryAdapterError,
+};
+use crate::ports::search::tantivy::{
+    TantivyBookmarkSearchEngineAdapter, TantivyBookmarkSearchEngineAdapterError,
 };
 
 #[derive(Default)]
@@ -24,10 +26,7 @@ impl App {
     }
 
     pub async fn run(&self) -> Result<(), AppInitialisationError> {
-        let application_service = ApplicationServiceImpl::new(
-            self.bookmark_search_engine()
-                .map_err(map_initialisation_error_cause)?,
-        );
+        let application_service = ApplicationServiceImpl::new(self.bookmark_search_engine()?);
 
         warp::serve(self.routes(Arc::new(application_service)))
             .run(([127, 0, 0, 1], 3033))
@@ -38,13 +37,23 @@ impl App {
 
     fn bookmark_search_engine(
         &self,
-    ) -> Result<SimpleBookmarkSearchEngine, SimpleBookmarkSearchEngineInitialisationError> {
-        let bookmark_factory = BookmarkFactoryImpl::new();
-        let bookmark_repository = FileSystemBookmarkRepositoryAdapter::new(
-            self.search_engine_config_path.as_path(),
-            bookmark_factory,
-        );
-        SimpleBookmarkSearchEngine::new(bookmark_repository)
+    ) -> Result<
+        TantivyBookmarkSearchEngineAdapter<FileSystemBookmarkRepositoryAdapter>,
+        AppInitialisationError,
+    > {
+        let mut bookmark_repository =
+            FileSystemBookmarkRepositoryAdapter::new(self.search_engine_config_path.as_path());
+        bookmark_repository
+            .initialise()
+            .map_err(map_initialisation_error_cause)?;
+        let bookmarks = bookmark_repository
+            .get_all()
+            .map_err(map_initialisation_error_cause)?;
+        let mut search_engine = TantivyBookmarkSearchEngineAdapter::new(bookmark_repository);
+        search_engine
+            .initialise(bookmarks)
+            .map_err(map_initialisation_error_cause)?;
+        Ok(search_engine)
     }
 
     fn routes<AS>(
@@ -77,7 +86,11 @@ impl AppInitialisationError {
 #[derive(Debug, thiserror::Error)]
 enum AppInitialisationCause {
     #[error(transparent)]
-    SearchEngine(#[from] SimpleBookmarkSearchEngineInitialisationError),
+    Repository(#[from] BookmarkRepositoryError),
+    #[error(transparent)]
+    FileSystemRepository(#[from] FileSystemBookmarkRepositoryAdapterError),
+    #[error(transparent)]
+    SearchEngine(#[from] TantivyBookmarkSearchEngineAdapterError),
 }
 
 fn map_initialisation_error_cause<C: Into<AppInitialisationCause>>(

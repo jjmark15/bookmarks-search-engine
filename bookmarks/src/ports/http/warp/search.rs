@@ -5,7 +5,8 @@ use std::sync::Arc;
 use warp::http::{Response, StatusCode, Uri};
 use warp::{Filter, Reply};
 
-use crate::application::ApplicationService;
+use crate::application::{ApplicationService, ApplicationServiceError};
+use crate::domain::bookmark::BookmarkSearchEngineError;
 use crate::ports::http::warp::with_application_service;
 
 pub(crate) fn bookmarks_search_filter<AS>(
@@ -25,23 +26,39 @@ fn handler<AS: ApplicationService>(
     application_service: Arc<AS>,
 ) -> warp::reply::Response {
     match p.get("q") {
-        Some(term) => {
-            let urls = application_service.search(term.clone());
+        Some(term) => match application_service.search(term.clone()) {
+            Ok(urls) => {
+                if urls.len() == 1 {
+                    let url = urls.get(0).unwrap().clone();
+                    return warp::redirect(Uri::from_str(url.as_str()).unwrap()).into_response();
+                }
 
-            if urls.len() == 1 {
-                let url = urls.get(0).unwrap().clone();
-                return warp::redirect(Uri::from_str(url.as_str()).unwrap()).into_response();
+                Response::builder()
+                    .body(
+                        urls.iter()
+                            .map(|url| url.as_str().to_string())
+                            .collect::<Vec<String>>()
+                            .join(", "),
+                    )
+                    .into_response()
             }
-
-            Response::builder()
-                .body(
-                    urls.iter()
-                        .map(|url| url.as_str().to_string())
-                        .collect::<Vec<String>>()
-                        .join(", "),
-                )
-                .into_response()
-        }
+            Err(err) => match &err {
+                ApplicationServiceError::Search(cause) => match cause {
+                    BookmarkSearchEngineError::InvalidQuery => Response::builder()
+                        .status(StatusCode::BAD_REQUEST)
+                        .body(format!("{}", err))
+                        .into_response(),
+                    BookmarkSearchEngineError::BookmarkNotFound(_) => Response::builder()
+                        .status(StatusCode::NOT_FOUND)
+                        .body(format!("{}", err))
+                        .into_response(),
+                    BookmarkSearchEngineError::Unexpected(_) => Response::builder()
+                        .status(StatusCode::INTERNAL_SERVER_ERROR)
+                        .body(format!("{}", err))
+                        .into_response(),
+                },
+            },
+        },
         None => Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .body(String::from("No \"q\" param in query."))

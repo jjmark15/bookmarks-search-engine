@@ -1,10 +1,9 @@
+use crate::domain::bookmark::Bookmark;
 use url::Url;
 use uuid::Uuid;
 
-use crate::domain::bookmark::Bookmark;
-
-#[derive(Clone)]
-pub(crate) struct SimpleSearchBookmark {
+#[derive(Debug, serde::Deserialize)]
+pub(super) struct MemoryBookmark {
     id: Uuid,
     url: Url,
     name: String,
@@ -12,7 +11,7 @@ pub(crate) struct SimpleSearchBookmark {
     tags: Vec<String>,
 }
 
-impl SimpleSearchBookmark {
+impl MemoryBookmark {
     pub(crate) fn new(
         id: Uuid,
         url: Url,
@@ -20,7 +19,7 @@ impl SimpleSearchBookmark {
         description: Option<String>,
         tags: Vec<String>,
     ) -> Self {
-        SimpleSearchBookmark {
+        MemoryBookmark {
             id,
             url,
             name,
@@ -53,20 +52,8 @@ impl SimpleSearchBookmark {
     }
 }
 
-impl From<&Bookmark> for SimpleSearchBookmark {
-    fn from(bookmark: &Bookmark) -> Self {
-        SimpleSearchBookmark::new(
-            bookmark.id(),
-            bookmark.url().clone(),
-            bookmark.name().clone(),
-            bookmark.description().cloned(),
-            bookmark.tags().clone(),
-        )
-    }
-}
-
-impl From<SimpleSearchBookmark> for Bookmark {
-    fn from(bookmark: SimpleSearchBookmark) -> Self {
+impl From<&MemoryBookmark> for Bookmark {
+    fn from(bookmark: &MemoryBookmark) -> Self {
         Bookmark::new(
             bookmark.id(),
             bookmark.url().clone(),

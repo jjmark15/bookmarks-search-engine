@@ -25,7 +25,7 @@ fn handler<AS: ApplicationService>(
 ) -> warp::reply::Response {
     match p.get("q") {
         Some(term) => {
-            let names = application_service.suggest(term.clone());
+            let names = application_service.suggest(term.clone()).unwrap();
             let body = SuggestionResponse::new(term.clone(), names);
 
             Response::builder()

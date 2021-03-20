@@ -1,11 +1,9 @@
 use url::Url;
 use uuid::Uuid;
 
-pub(crate) use bookmark_factory::*;
 pub(crate) use bookmark_repository::*;
 pub(crate) use bookmark_search_engine::*;
 
-mod bookmark_factory;
 mod bookmark_repository;
 mod bookmark_search_engine;
 

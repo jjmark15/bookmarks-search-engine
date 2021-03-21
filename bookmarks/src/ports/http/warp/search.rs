@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use warp::http::header::CACHE_CONTROL;
 use warp::http::{Response, StatusCode, Uri};
 use warp::{Filter, Reply};
 
@@ -30,10 +31,16 @@ fn handler<AS: ApplicationService>(
             Ok(urls) => {
                 if urls.len() == 1 {
                     let url = urls.get(0).unwrap().clone();
-                    return warp::redirect(Uri::from_str(url.as_str()).unwrap()).into_response();
+                    return warp::reply::with_header(
+                        warp::redirect(Uri::from_str(url.as_str()).unwrap()),
+                        CACHE_CONTROL,
+                        "no-store",
+                    )
+                    .into_response();
                 }
 
                 Response::builder()
+                    .header(CACHE_CONTROL, "no-store")
                     .body(
                         urls.iter()
                             .map(|url| url.as_str().to_string())
@@ -45,14 +52,17 @@ fn handler<AS: ApplicationService>(
             Err(err) => match &err {
                 ApplicationServiceError::Search(cause) => match cause {
                     BookmarkSearchEngineError::InvalidQuery => Response::builder()
+                        .header(CACHE_CONTROL, "no-store")
                         .status(StatusCode::BAD_REQUEST)
                         .body(format!("{}", err))
                         .into_response(),
                     BookmarkSearchEngineError::BookmarkNotFound(_) => Response::builder()
+                        .header(CACHE_CONTROL, "no-store")
                         .status(StatusCode::NOT_FOUND)
                         .body(format!("{}", err))
                         .into_response(),
                     BookmarkSearchEngineError::Unexpected(_) => Response::builder()
+                        .header(CACHE_CONTROL, "no-store")
                         .status(StatusCode::INTERNAL_SERVER_ERROR)
                         .body(format!("{}", err))
                         .into_response(),
@@ -60,6 +70,7 @@ fn handler<AS: ApplicationService>(
             },
         },
         None => Response::builder()
+            .header(CACHE_CONTROL, "no-store")
             .status(StatusCode::BAD_REQUEST)
             .body(String::from("No \"q\" param in query."))
             .into_response(),

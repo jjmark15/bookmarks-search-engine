@@ -6,6 +6,7 @@ use warp::{Filter, Reply};
 
 use crate::application::ApplicationService;
 use crate::ports::http::warp::with_application_service;
+use warp::http::header::CACHE_CONTROL;
 
 pub(crate) fn bookmarks_suggestions_filter<AS>(
     application_service: Arc<AS>,
@@ -29,6 +30,7 @@ fn handler<AS: ApplicationService>(
             let body = SuggestionResponse::new(term.clone(), names);
 
             Response::builder()
+                .header(CACHE_CONTROL, "no-store")
                 .status(StatusCode::OK)
                 .header(
                     warp::http::header::CONTENT_TYPE,
@@ -38,6 +40,7 @@ fn handler<AS: ApplicationService>(
                 .into_response()
         }
         None => Response::builder()
+            .header(CACHE_CONTROL, "no-store")
             .status(StatusCode::BAD_REQUEST)
             .body(String::from("No \"q\" param in query."))
             .into_response(),

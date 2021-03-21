@@ -6,8 +6,8 @@ use warp::http::header::CACHE_CONTROL;
 use warp::http::{Response, StatusCode, Uri};
 use warp::{Filter, Reply};
 
-use crate::application::{ApplicationService, ApplicationServiceError};
-use crate::domain::bookmark::BookmarkSearchEngineError;
+use crate::application::ApplicationService;
+use crate::ports::http::warp::search_error_handling::handle_search_error;
 use crate::ports::http::warp::with_application_service;
 
 pub(crate) fn bookmarks_search_filter<AS>(
@@ -49,25 +49,7 @@ fn handler<AS: ApplicationService>(
                     )
                     .into_response()
             }
-            Err(err) => match &err {
-                ApplicationServiceError::Search(cause) => match cause {
-                    BookmarkSearchEngineError::InvalidQuery => Response::builder()
-                        .header(CACHE_CONTROL, "no-store")
-                        .status(StatusCode::BAD_REQUEST)
-                        .body(format!("{}", err))
-                        .into_response(),
-                    BookmarkSearchEngineError::BookmarkNotFound(_) => Response::builder()
-                        .header(CACHE_CONTROL, "no-store")
-                        .status(StatusCode::NOT_FOUND)
-                        .body(format!("{}", err))
-                        .into_response(),
-                    BookmarkSearchEngineError::Unexpected(_) => Response::builder()
-                        .header(CACHE_CONTROL, "no-store")
-                        .status(StatusCode::INTERNAL_SERVER_ERROR)
-                        .body(format!("{}", err))
-                        .into_response(),
-                },
-            },
+            Err(err) => handle_search_error(&err),
         },
         None => Response::builder()
             .header(CACHE_CONTROL, "no-store")

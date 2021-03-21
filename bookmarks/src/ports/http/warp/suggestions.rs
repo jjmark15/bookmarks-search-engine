@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use warp::http::header::CACHE_CONTROL;
 use warp::http::{Response, StatusCode};
 use warp::{Filter, Reply};
 
 use crate::application::ApplicationService;
+use crate::ports::http::warp::search_error_handling::handle_search_error;
 use crate::ports::http::warp::with_application_service;
-use warp::http::header::CACHE_CONTROL;
 
 pub(crate) fn bookmarks_suggestions_filter<AS>(
     application_service: Arc<AS>,
@@ -25,20 +26,22 @@ fn handler<AS: ApplicationService>(
     application_service: Arc<AS>,
 ) -> warp::reply::Response {
     match p.get("q") {
-        Some(term) => {
-            let names = application_service.suggest(term.clone()).unwrap();
-            let body = SuggestionResponse::new(term.clone(), names);
+        Some(term) => match application_service.suggest(term.clone()) {
+            Ok(names) => {
+                let body = SuggestionResponse::new(term.clone(), names);
 
-            Response::builder()
-                .header(CACHE_CONTROL, "no-store")
-                .status(StatusCode::OK)
-                .header(
-                    warp::http::header::CONTENT_TYPE,
-                    "application/x-suggestions+json",
-                )
-                .body(serde_json::to_string(&body).unwrap())
-                .into_response()
-        }
+                Response::builder()
+                    .header(CACHE_CONTROL, "no-store")
+                    .status(StatusCode::OK)
+                    .header(
+                        warp::http::header::CONTENT_TYPE,
+                        "application/x-suggestions+json",
+                    )
+                    .body(serde_json::to_string(&body).unwrap())
+                    .into_response()
+            }
+            Err(err) => handle_search_error(&err),
+        },
         None => Response::builder()
             .header(CACHE_CONTROL, "no-store")
             .status(StatusCode::BAD_REQUEST)
